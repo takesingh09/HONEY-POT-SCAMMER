@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agentic Honey-Pot | Command Center</title>
-    <!-- Using Google Fonts for a tech/cyber look -->
+    <title>ACESQUAD | Agentic Honey-Pot Command Center</title>
+    <!-- Google Fonts for a tech/cyber look -->
     <link
         href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600&display=swap"
         rel="stylesheet">
@@ -39,7 +39,7 @@
 
         /* Header */
         header {
-            padding: 1.5rem 2rem;
+            padding: 1.2rem 2rem;
             border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
@@ -50,7 +50,7 @@
 
         .brand {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: 700;
             color: var(--accent-green);
             text-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
@@ -59,22 +59,21 @@
         .status-badge {
             background: rgba(0, 240, 255, 0.1);
             color: var(--accent-green);
-            padding: 0.5rem 1rem;
+            padding: 0.4rem 0.8rem;
             border-radius: 4px;
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             border: 1px solid var(--accent-green);
+            letter-spacing: 1px;
         }
 
         /* Main Layout */
         main {
             flex: 1;
             display: grid;
-            grid-template-columns: 300px 1fr 350px;
-            /* Sidebar, Main content, Details */
+            grid-template-columns: 320px 1fr 320px;
             gap: 1px;
             background-color: var(--border-color);
             overflow: hidden;
-            /* Important to keep panels contained */
         }
 
         section {
@@ -88,9 +87,9 @@
 
         h2 {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 1.1rem;
+            font-size: 1rem;
             color: var(--text-secondary);
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.2rem;
             text-transform: uppercase;
             letter-spacing: 1px;
             display: flex;
@@ -122,58 +121,57 @@
             padding: 1rem;
             border-radius: 8px;
             border: 1px solid var(--border-color);
+            text-align: center;
         }
 
         .stat-value {
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: 700;
             color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
         }
 
         .stat-label {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: var(--text-secondary);
+            margin-top: 0.2rem;
         }
 
-        /* Lists (Sessions/Intel) */
+        /* Lists */
         .data-list-container {
             flex: 1;
             overflow-y: auto;
-        }
-
-        .data-list {
-            list-style: none;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
         }
 
         .data-item {
-            padding: 1rem;
+            padding: 0.8rem;
             border-bottom: 1px solid var(--border-color);
-            cursor: pointer;
             transition: background 0.2s;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
         }
 
         .data-item:hover {
             background: var(--card-bg);
         }
 
-        .data-item.active {
-            border-left: 3px solid var(--accent-green);
-            background: var(--card-bg);
-        }
-
         .item-title {
             font-weight: 600;
-            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
+            margin-bottom: 0.2rem;
             display: block;
+            word-break: break-all;
         }
 
         .item-subtitle {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--text-secondary);
             font-family: 'JetBrains Mono', monospace;
         }
 
-        /* Chat Area - Refactored for Scrolling */
+        /* Chat Panel */
         #chat-panel {
             display: flex;
             flex-direction: column;
@@ -182,100 +180,125 @@
 
         .chat-container {
             flex: 1;
-            /* Takes all available space */
             display: flex;
             flex-direction: column;
             gap: 1rem;
             overflow-y: auto;
-            /* Enables scrolling for messages */
-            padding-right: 10px;
-            /* Space for scrollbar */
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
             margin-bottom: 1rem;
         }
 
-        /* Custom Scrollbar for modern look */
-        .chat-container::-webkit-scrollbar {
-            width: 5px;
-        }
-
-        .chat-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .chat-container::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 10px;
-        }
-
         .message {
-            max-width: 80%;
-            padding: 1rem;
+            max-width: 85%;
+            padding: 0.8rem 1rem;
             border-radius: 8px;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            flex-shrink: 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
         }
 
         .message.scammer {
             align-self: flex-start;
-            background: var(--card-bg);
-            border-left: 3px solid var(--accent-red);
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            border-left: 4px solid var(--accent-red);
         }
 
         .message.agent {
             align-self: flex-end;
-            background: rgba(0, 240, 255, 0.05);
-            border-right: 3px solid var(--accent-green);
-            text-align: right;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-right: 4px solid var(--accent-green);
         }
 
         .msg-role {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
+            font-weight: 700;
             color: var(--text-secondary);
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.3rem;
             display: block;
             font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
         }
 
-        /* Simulator Input Area - Fixed at Bottom */
+        /* Input Area */
         .simulator-input-area {
             flex-shrink: 0;
-            /* Prevents input bar from shrinking */
             border-top: 1px solid var(--border-color);
             padding-top: 1rem;
-            background: var(--bg-color);
         }
 
-        /* Intel Tags */
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 0.8rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: white;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-green);
+        }
+
+        button {
+            padding: 0 1.2rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            transition: opacity 0.2s;
+        }
+
+        .btn-send {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .btn-reset {
+            background: var(--card-bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        /* Tags */
         .tag {
             display: inline-block;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 0.25rem 0.5rem;
+            padding: 2px 6px;
             border-radius: 4px;
-            font-size: 0.8rem;
-            margin-right: 0.5rem;
-            margin-bottom: 0.5rem;
-            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-right: 5px;
+            text-transform: uppercase;
         }
 
         .tag.upi {
             color: #facc15;
-            border: 1px solid rgba(250, 204, 21, 0.2);
+            background: rgba(250, 204, 21, 0.1);
         }
 
         .tag.phone {
             color: #a78bfa;
-            border: 1px solid rgba(167, 139, 250, 0.2);
-        }
-
-        .tag.link {
-            color: #38bdf8;
-            border: 1px solid rgba(56, 189, 248, 0.2);
+            background: rgba(167, 139, 250, 0.1);
         }
 
         .tag.bank {
             color: #f472b6;
-            border: 1px solid rgba(244, 114, 182, 0.2);
+            background: rgba(244, 114, 182, 0.1);
         }
     </style>
 </head>
@@ -283,21 +306,21 @@
 <body>
 
     <header>
-        <div class="brand">HCL GUVI // HONEY-POT</div>
-        <div class="status-badge">SYSTEM ACTIVE</div>
+        <div class="brand">HCL GUVI // ACESQUAD HONEY-POT</div>
+        <div class="status-badge">● LIVE MONITORING</div>
     </header>
 
     <main>
-        <!-- LEFT PANEL: Overview & Intelligence -->
+        <!-- LEFT PANEL: Intelligence -->
         <section id="intel-panel">
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value" id="active-sessions">0</div>
-                    <div class="stat-label">Active Scammers</div>
+                    <div class="stat-label">Sessions</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="intel-count">0</div>
-                    <div class="stat-label">Intel Points</div>
+                    <div class="stat-label">Intel Extracted</div>
                 </div>
             </div>
 
@@ -305,55 +328,177 @@
             <div class="data-list-container">
                 <div id="intel-list" class="data-list">
                     <div class="data-item">
-                        <span class="item-subtitle">No intelligence extracted yet...</span>
+                        <span class="item-subtitle">No intelligence detected...</span>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- MIDDLE PANEL: Live Chat & Simulator -->
+        <!-- MIDDLE PANEL: Chat -->
         <section id="chat-panel">
-            <h2>Live Interception & Simulator</h2>
+            <h2>Agent Interaction Simulator</h2>
 
             <div id="chat-container" class="chat-container">
-                <!-- Messages will appear here -->
                 <div class="message scammer">
                     <span class="msg-role">SYSTEM</span>
-                    Waiting for scammer activity...
+                    Waiting for suspicious activity to begin...
                 </div>
             </div>
 
-            <!-- SIMULATOR INPUT (Sticky at Bottom) -->
             <div class="simulator-input-area">
-                <h3 style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">SIMULATE SCAMMER
-                </h3>
-                <div style="display: flex; gap: 0.5rem;">
-                    <input type="text" id="sim-input" placeholder="Type a message (e.g., 'You won a lottery...')"
-                        style="flex: 1; padding: 0.75rem; border-radius: 4px; border: 1px solid var(--border-color); background: var(--card-bg); color: white; font-family: 'Inter';">
-                    <button onclick="sendScamMessage()"
-                        style="background: var(--accent-red); color: white; border: none; padding: 0 1.5rem; border-radius: 4px; cursor: pointer; font-weight: 600;">
-                        SEND
-                    </button>
-                    <button onclick="startNewSession()" title="Reset Session"
-                        style="background: var(--card-bg); color: var(--text-secondary); border: 1px solid var(--border-color); padding: 0 1rem; border-radius: 4px; cursor: pointer;">
-                        ⟳
-                    </button>
+                <div class="input-group">
+                    <input type="text" id="sim-input" placeholder="Simulate scammer message (e.g. 'Send OTP')">
+                    <button class="btn-send" onclick="sendScamMessage()">SEND</button>
+                    <button class="btn-reset" onclick="startNewSession()" title="Reset">⟳</button>
                 </div>
             </div>
         </section>
 
         <!-- RIGHT PANEL: Session List -->
         <section id="sessions-panel">
-            <h2>Active Sessions</h2>
+            <h2>Active Targets</h2>
             <div class="data-list-container">
                 <ul id="session-list" class="data-list">
-                    <!-- Dynamic Session Items -->
+                    <!-- Dynamic Items -->
                 </ul>
             </div>
         </section>
     </main>
 
-    <script src="script.js"></script>
+    <script>
+        // --- CONFIGURATION ---
+        // REPLACE with your actual Render URL
+        const API_BASE = "https://honey-pot-scammer-1.onrender.com";
+        const HACKATHON_API_KEY = "guvi-hackathon-key";
+
+        let chatHistory = [];
+        let sessionId = "session-" + Math.floor(Math.random() * 1000000);
+
+        async function fetchStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/dashboard/stats`);
+                if (response.ok) {
+                    const data = await response.json();
+                    updateDashboard(data);
+                }
+            } catch (error) {
+                console.warn("Stats fetch failed - Backend might be sleeping on Render.");
+            }
+        }
+
+        async function sendScamMessage() {
+            const input = document.getElementById("sim-input");
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            addMessageToUI("scammer", msg);
+            input.value = "";
+
+            try {
+                // Prepare GUVI expected request format
+                const payload = {
+                    sessionId: sessionId,
+                    message: {
+                        text: msg,
+                        sender: "scammer",
+                        timestamp: new Date().getTime()
+                    },
+                    conversationHistory: chatHistory,
+                    metadata: {
+                        channel: "Web Simulator",
+                        language: "English",
+                        locale: "IN"
+                    }
+                };
+
+                const response = await fetch(`${API_BASE}/`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-api-key": HACKATHON_API_KEY
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error("Server Error");
+
+                const data = await response.json();
+
+                // Update Local History for next turn
+                chatHistory.push({ sender: "scammer", text: msg });
+
+                if (data && data.reply) {
+                    addMessageToUI("agent", data.reply);
+                    chatHistory.push({ sender: "user", text: data.reply });
+                }
+
+                fetchStats();
+
+            } catch (e) {
+                console.error("Connection Error:", e);
+                addMessageToUI("agent", "SYSTEM ERROR: Backend connection failed. Please ensure Render is active.");
+            }
+        }
+
+        function updateDashboard(data) {
+            document.getElementById("active-sessions").innerText = data.active_sessions || 0;
+
+            const intel = data.intelligence || {};
+            const upi = intel.upi_ids || [];
+            const phone = intel.phone_numbers || [];
+            const bank = intel.bank_accounts || [];
+
+            const totalIntel = upi.length + phone.length + bank.length;
+            document.getElementById("intel-count").innerText = totalIntel;
+
+            const intelList = document.getElementById("intel-list");
+            intelList.innerHTML = "";
+
+            const addItems = (items, type) => {
+                items.forEach(val => {
+                    const div = document.createElement("div");
+                    div.className = "data-item";
+                    div.innerHTML = `<span class="tag ${type}">${type}</span><span class="item-title">${val}</span>`;
+                    intelList.appendChild(div);
+                });
+            };
+
+            addItems(upi, "upi");
+            addItems(phone, "phone");
+            addItems(bank, "bank");
+
+            if (totalIntel === 0) {
+                intelList.innerHTML = `<div class="data-item"><span class="item-subtitle">Monitoring for scam patterns...</span></div>`;
+            }
+
+            const sessionList = document.getElementById("session-list");
+            sessionList.innerHTML = `<li class="data-item active"><span class="item-title">#${sessionId}</span><span class="item-subtitle">Intercepting...</span></li>`;
+        }
+
+        function addMessageToUI(role, text) {
+            const container = document.getElementById("chat-container");
+            const div = document.createElement("div");
+            div.className = `message ${role}`;
+            const label = role === 'scammer' ? 'SCAMMER (YOU)' : 'AGENT (ASHOK KUMAR)';
+            div.innerHTML = `<span class="msg-role">${label}</span>${text}`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function startNewSession() {
+            sessionId = "session-" + Math.floor(Math.random() * 1000000);
+            chatHistory = [];
+            document.getElementById("chat-container").innerHTML = "";
+            addMessageToUI("agent", "Beta, mera account thik kar do please...");
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const input = document.getElementById("sim-input");
+            input.addEventListener("keypress", (e) => { if (e.key === "Enter") sendScamMessage(); });
+            fetchStats();
+            setInterval(fetchStats, 10000);
+        });
+    </script>
 </body>
 
 </html>
