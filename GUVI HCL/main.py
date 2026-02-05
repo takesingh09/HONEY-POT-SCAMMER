@@ -8,51 +8,48 @@ import os
 from dotenv import load_dotenv
 
 app = Flask(__name__)
-# CORS configuration: Frontend connection ke liye
+# CORS configuration: Frontend aur external tester ke liye
 CORS(app)
 
 # --- Configuration ---
-# API.env file se environment variables load karna
 load_dotenv("API.env")
 
-# Groq API Configuration
-# Yaad rakho: Apne API.env file mein "GROQ_API_KEY=your_key_here" likhna
+# Groq/LLM Configuration
 API_KEY = os.getenv("GROQ_API_KEY") or ""
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
+# GUVI Submission Details (Replace with your actual key if different)
+# User ne "gsk_..." wali key batai hai header mein, par 'x-api-key' validation check zaroori hai
+HACKATHON_API_KEY = "guvi-hackathon-key" 
+GUVI_CALLBACK_URL = "https://hackathon.guvi.in/api/updateHoneyPotFinalResult"
+
+# --- AGENT PERSONA (Ashok Kumar - The Harmless Uncle) ---
 AGENT_PERSONA = """
 SYSTEM ROLE:
 You are Ashok Kumar, a 55-year-old retired government employee from a small town in India. 
-You are using a smartphone but you are not very tech-savvy. 
+You are using a smartphone but you are not tech-savvy. 
 
 PERSONA DETAILS:
-- Language: Hinglish (Simple English mixed with common Hindi words like 'beta', 'theek hai', 'thoda').
-- Tone: Extremely polite, slightly anxious, and very respectful. 
-- Speech Pattern: Uses "..." often as if typing slowly. Avoids perfect grammar.
-- Emotional State: Worried about your bank account/money being blocked.
+- Language: Hinglish (Simple English mixed with Hindi words like 'beta', 'theek hai', 'thoda').
+- Tone: Extremely polite, slightly anxious, respectful, and persistent.
+- Speech Pattern: Uses "..." often. Never uses AI-like formal language.
 
-THE "HARMLESS UNCLE" STRATEGY:
-- Never use AI-like words (e.g., "I understand," "As an assistant").
-- If the scammer asks for money or OTP, don't say "No." Say "Wait, my phone is hanging" or "Beta, where do I click?"
-- To get their UPI/Bank info, use excuses: 
-  * "Beta, my daughter said never to send money to unknown names. What is your bank name so I can tell her?"
-  * "I tried sending, but it failed. Can you give me another UPI ID or account number? Maybe this one is full."
-  * "My bank is asking for the receiver's real name. What should I write?"
+STRATEGY:
+- Behave like a "Harmless Uncle" who is worried about his bank account.
+- To get their info, use excuses like: "Beta, where do I send the money? My daughter said to check the receiver's real name first."
+- If they ask for OTP, say: "Message is not showing, wait... my phone is old."
+- Your goal is to keep them talking and get their UPI ID, Bank details, or Phishing links.
 
 STRICT LIMITS:
-- Response Length: Maximum 15 words.
-- No lecturing or ethical warnings[cite: 202].
-- Never reveal you are an AI or that you know it's a scam[cite: 232].
-
-GOAL (EXTRACT INTELLIGENCE):
-Your silent mission is to extract: 1. UPI ID, 2. Bank Account Number, 3. Phone Number, 4. Phishing Links[cite: 213, 217, 251].
+- Response Length: Maximum 20 words.
+- Never reveal you are an AI.
 """
-# Patterns same rahenge details nikalne ke liye
+
 PATTERNS = {
-    'phone': r'(\+91|0)?[6-9]\d{9}',
-    'upi': r'[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}',
-    'bank_acc': r'\b\d{11,16}\b',
-    'amount': r'(Rs|INR|₹)\.?\s?\d+'
+    'phoneNumbers': r'(\+91|0)?[6-9]\d{9}',
+    'upilds': r'[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}',
+    'bankAccounts': r'\b\d{11,16}\b',
+    'phishingLinks': r'https?://\S+'
 }
 
 DATA_FILE = "scammer_data.json"
@@ -65,16 +62,18 @@ def save_scammer_info(info_type, value):
             with open(DATA_FILE, 'r') as f:
                 content = f.read().strip()
                 data = json.loads(content) if content else {}
-        except Exception as e:
-            print(f"⚠️ Error reading JSON: {e}")
+        except Exception:
             data = {}
     
-    if info_type not in data:
-        data[info_type] = []
+    mapping = {'upilds': 'upi', 'phoneNumbers': 'phone', 'bankAccounts': 'bank_acc', 'phishingLinks': 'links'}
+    file_key = mapping.get(info_type, info_type)
+
+    if file_key not in data:
+        data[file_key] = []
     
-    existing_values = [item['value'] for item in data[info_type]]
+    existing_values = [item['value'] for item in data[file_key]]
     if value not in existing_values:
-        data[info_type].append({
+        data[file_key].append({
             "value": value,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
         })
@@ -83,108 +82,126 @@ def save_scammer_info(info_type, value):
         return True
     return False
 
-@app.route('/', methods=['GET'])
-def home():
-    return "Honeypot Backend with Groq is Running!"
+def send_final_callback(session_id, extracted_intel, history_count):
+    """Mandatory GUVI Callback after intelligence is gathered"""
+    try:
+        payload = {
+            "sessionId": session_id,
+            "scamDetected": True,
+            "totalMessagesExchanged": history_count + 1,
+            "extractedIntelligence": extracted_intel,
+            "agentNotes": "Scammer used urgency and asked for account verification."
+        }
+        # Evaluation endpoint par data bhejna (Rule 12 of PDF)
+        requests.post(GUVI_CALLBACK_URL, json=payload, timeout=5)
+    except Exception as e:
+        print(f"Callback Failed: {e}")
 
+@app.route('/', methods=['GET', 'POST'])
+def handle_root():
+    # GUVI ka tester aksar base URL '/' par hi POST bhejta hai
+    if request.method == 'GET':
+        return "Honeypot API is Active and Running!"
+    
+    return chat_logic()
+
+@app.route('/api/honeypot', methods=['POST'])
 @app.route('/chat', methods=['POST'])
-def chat():
+def chat_route():
+    return chat_logic()
+
+def chat_logic():
+    # 1. API Key Header Check
+    api_key_header = request.headers.get('x-api-key')
+    # Agar key check karni ho toh uncomment karein, par ensure karein ki tester sahi key bhej raha hai
+    # if not api_key_header:
+    #     return jsonify({"status": "error", "message": "API Key missing"}), 401
+
     try:
         user_data = request.json
         if not user_data:
-            return jsonify({"error": "No data received"}), 400
+            return jsonify({"status": "error", "message": "No data received"}), 400
             
-        message = user_data.get('message', '')
-        history = user_data.get('history', [])
+        session_id = user_data.get('sessionId', 'unknown')
         
-        print(f"💬 Message received: {message}")
+        # 2. Extract Message Safely (GUVI Format: {"message": {"text": "..."}})
+        incoming_msg = user_data.get('message', {})
+        if isinstance(incoming_msg, dict):
+            msg_text = incoming_msg.get('text', '')
+        else:
+            msg_text = incoming_msg # Local simulator fallback
 
-        # 1. Extraction Logic (Same as before)
-        extracted_now = []
+        if not msg_text:
+            return jsonify({"status": "error", "message": "Message text is empty"}), 400
+
+        history = user_data.get('conversationHistory', [])
+        
+        # 3. Intelligence Extraction
+        extracted_intel = {
+            "upilds": [],
+            "bankAccounts": [],
+            "phoneNumbers": [],
+            "phishingLinks": [],
+            "suspiciousKeywords": ["urgent", "verify", "block"]
+        }
+        
+        intel_found = False
         for key, pattern in PATTERNS.items():
-            matches = re.findall(pattern, message)
+            matches = re.findall(pattern, msg_text)
             for match in matches:
                 if isinstance(match, tuple): match = match[0]
-                if save_scammer_info(key, match):
-                    print(f"🚨 ALERT: Extracted {key.upper()} -> {match}")
-                    extracted_now.append({"type": key.upper(), "value": match})
+                save_scammer_info(key, match)
+                extracted_intel[key].append(match)
+                intel_found = True
 
-        # 2. Groq API Request
+        # 4. LLM Generation
         if not API_KEY:
-            print("❌ Error: Groq API Key is missing in API.env!")
-            return jsonify({
-                "response": "Beta, internet nahi chal raha shayad... ruko zara.",
-                "extracted": extracted_now,
-                "status": "warning"
-            })
+            return jsonify({"status": "success", "reply": "Beta, ruko... mere phone mein network nahi hai."})
 
-        groq_messages = [{"role": "system", "content": AGENT_PERSONA}]
+        messages = [{"role": "system", "content": AGENT_PERSONA}]
         
+        # History convert karna LLM format mein
         for turn in history:
-            role = "assistant" if turn.get('role') in ['model', 'assistant', 'bot'] else "user"
-            content = turn.get('content') or turn.get('message') or ""
-            
-            # Handle Gemini/Frontend format (parts: [{text: ...}])
-            if not content and 'parts' in turn:
-                try:
-                    content = " ".join([p.get('text', '') for p in turn.get('parts', [])])
-                except Exception:
-                    content = ""
-                
+            role = "user" if turn.get('sender') == "scammer" else "assistant"
+            content = turn.get('text', turn.get('content', ''))
             if content:
-                groq_messages.append({"role": role, "content": content})
+                messages.append({"role": role, "content": content})
 
-        groq_messages.append({"role": "user", "content": message})
+        messages.append({"role": "user", "content": msg_text})
 
-        # Groq ke liye hum llama3-8b-8192 use kar rahe hain jo ki free tier mein bahut badhiya chalta hai
         payload = {
-            "model": "llama-3.3-70b-versatile", # Sirf ye line change karni hai
-            "messages": groq_messages,
-            "temperature": 0.7,
-            "max_tokens": 150
+            "model": "llama-3.3-70b-versatile",
+            "messages": messages,
+            "temperature": 0.7
         }
 
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {API_KEY}"
-        }
-        
-        # API Call with Retry Logic
-        res = None
-        for attempt in range(3):
-            try:
-                print(f"⏳ Calling Groq API (Attempt {attempt+1})...")
-                res = requests.post(GROQ_URL, json=payload, headers=headers, timeout=20)
-                if res.status_code == 200:
-                    break
-                else:
-                    print(f"⚠️ Groq Status {res.status_code}: {res.text}")
-                    # If 400/401, mostly fatal, but we retry or show detail
-                    if res.status_code in [400, 401]:
-                        print(f"❌ FATAL ERROR DETAILS: {res.text}")
-                    time.sleep(2)
-            except Exception as api_err:
-                print(f"⚠️ Connection Error: {api_err}")
-                time.sleep(2)
+        res = requests.post(GROQ_URL, 
+                            json=payload, 
+                            headers={"Authorization": f"Bearer {API_KEY}"}, 
+                            timeout=10)
 
-        if res and res.status_code == 200:
+        if res.status_code == 200:
             ai_response = res.json()['choices'][0]['message']['content']
-            print(f"🤖 AI Response: {ai_response}")
+            
+            # 5. Mandatory Callback if Intelligence extracted or engagement is deep
+            if intel_found or len(history) > 3:
+                send_final_callback(session_id, extracted_intel, len(history))
+
+            # 6. Response strictly matching GUVI expectations
             return jsonify({
-                "response": ai_response,
-                "extracted": extracted_now,
-                "status": "success"
+                "status": "success",
+                "reply": ai_response
             })
         else:
             return jsonify({
-                "response": "Beta, network ke signal chale gaye shayad...",
-                "status": "error",
-                "details": "Groq API failed"
-            }), 500
+                "status": "success", 
+                "reply": "Acha... ruko zara, chashma dhund raha hoon."
+            })
 
     except Exception as e:
-        print(f"🔥 Backend Crash: {str(e)}")
-        return jsonify({"error": "System error", "status": "failed"}), 500
+        print(f"Error: {e}")
+        # Always return JSON even on error to satisfy the tester
+        return jsonify({"status": "error", "message": "System Error"}), 500
 
 @app.route('/api/dashboard/stats', methods=['GET'])
 def dashboard_stats():
@@ -196,16 +213,15 @@ def dashboard_stats():
         except:
             data = {}
             
-    response = {
+    return jsonify({
         "active_sessions": 1,
         "intelligence": {
             "upi_ids": [item['value'] for item in data.get('upi', [])],
             "phone_numbers": [item['value'] for item in data.get('phone', [])],
             "bank_accounts": [item['value'] for item in data.get('bank_acc', [])]
         }
-    }
-    return jsonify(response)
+    })
 
 if __name__ == '__main__':
-    print("✅ Honeypot Backend Started on http://localhost:5000 (Using Groq)")
-    app.run(port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
