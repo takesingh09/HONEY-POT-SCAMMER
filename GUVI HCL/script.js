@@ -1,19 +1,20 @@
-const API_BASE = "http://localhost:5000/api";
-const CHAT_URL = "http://localhost:5000/chat";
+// Dashboad and Chat logic for Agentic Honey-Pot
+const API_BASE = window.location.origin; // Dynamically use the current origin
+const CHAT_URL = `${API_BASE}/`; // Logic is now handled at root '/'
 
-// Store local history for the session
+// Store history in GUVI format: [{sender: "scammer", text: "..."}, {sender: "user", text: "..."}]
 let chatHistory = [];
+const sessionId = "session-" + Math.random().toString(36).substr(2, 9);
 
 async function fetchStats() {
     try {
-        const response = await fetch(`${API_BASE}/dashboard/stats`);
+        const response = await fetch(`${API_BASE}/api/dashboard/stats`);
         if (response.ok) {
             const data = await response.json();
             updateDashboard(data);
         }
     } catch (error) {
-        // Console error suppressed to avoid spamming if backend is off
-        // console.error("Error fetching stats:", error);
+        // Silently fail if dashboard stats endpoint isn't ready
     }
 }
 
@@ -22,64 +23,78 @@ async function sendScamMessage() {
     const msg = input.value.trim();
     if (!msg) return;
 
-    // 1. Show User Message Immediately
+    // 1. Show User (Scammer) Message in UI
     addMessageToUI("scammer", msg);
     input.value = "";
 
     try {
-        // 2. Send to Flask Backend
+        // 2. Prepare Payload matching main.py logic
+        const payload = {
+            sessionId: sessionId,
+            message: {
+                text: msg,
+                sender: "scammer",
+                timestamp: new Date().toISOString()
+            },
+            conversationHistory: chatHistory
+        };
+
+        // 3. Send to Backend
         const response = await fetch(CHAT_URL, {
             method: "POST",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "x-api-key": "guvi-hackathon-key" // Local testing key
             },
-            body: JSON.stringify({
-                message: msg,
-                history: chatHistory
-            })
+            body: JSON.stringify(payload)
         });
 
         const data = await response.json();
 
-        // 3. Update History
-        chatHistory.push({ role: "user", parts: [{ text: msg }] });
+        // 4. Update Local History (Scammer's turn)
+        chatHistory.push({ sender: "scammer", text: msg });
 
-        // 4. Show Agent Reply
-        if (data && data.response) {
-            addMessageToUI("agent", data.response);
-            chatHistory.push({ role: "model", parts: [{ text: data.response }] });
+        // 5. Handle Agent Reply (using 'reply' key as per GUVI)
+        if (data && data.reply) {
+            addMessageToUI("agent", data.reply);
+            // Update Local History (Agent's turn - represented as 'user' in history)
+            chatHistory.push({ sender: "user", text: data.reply });
+        } else if (data && data.status === "error") {
+            addMessageToUI("agent", "SYSTEM: " + data.message);
         }
 
-        // 5. Force refresh stats to show new extracted intel immediately
+        // 6. Refresh stats to show any extracted intelligence
         fetchStats();
 
     } catch (e) {
-        console.error("Error sending message:", e);
-        addMessageToUI("scammer", "SYSTEM ERROR: Backend not reachable on port 5000.");
+        console.error("Error:", e);
+        addMessageToUI("agent", "SYSTEM ERROR: Backend connection failed.");
     }
 }
 
 function updateDashboard(data) {
     // 1. Update Counters
-    document.getElementById("active-sessions").innerText = data.active_sessions;
+    if (document.getElementById("active-sessions")) {
+        document.getElementById("active-sessions").innerText = data.active_sessions || 0;
+    }
 
-    // Count total intel points
-    // Check fields existence to avoid errors
-    const upi = data.intelligence.upi_ids || [];
-    const phone = data.intelligence.phone_numbers || [];
-    const links = data.intelligence.links || [];
-    const bank = data.intelligence.bank_accounts || [];
+    const intel = data.intelligence || {};
+    const upi = intel.upi_ids || [];
+    const phone = intel.phone_numbers || [];
+    const bank = intel.bank_accounts || [];
 
-    const totalIntel = upi.length + links.length + phone.length + bank.length;
-    document.getElementById("intel-count").innerText = totalIntel;
+    const totalIntel = upi.length + phone.length + bank.length;
+    if (document.getElementById("intel-count")) {
+        document.getElementById("intel-count").innerText = totalIntel;
+    }
 
     // 2. Update Intelligence List
     const intelList = document.getElementById("intel-list");
+    if (!intelList) return;
+
     intelList.innerHTML = "";
 
-    // Helper to add intel items
     const addIntel = (items, type) => {
-        if (!items) return;
         items.forEach(item => {
             const div = document.createElement("div");
             div.className = "data-item";
@@ -93,37 +108,34 @@ function updateDashboard(data) {
 
     addIntel(upi, "upi");
     addIntel(phone, "phone");
-    addIntel(links, "link");
-    addIntel(bank, "bank"); // Added Bank support in UI
+    addIntel(bank, "bank");
 
     if (totalIntel === 0) {
         intelList.innerHTML = `<div class="data-item"><span class="item-subtitle">Scanning for intelligence...</span></div>`;
     }
 
-    // 3. Update Session List (Right Panel)
+    // 3. Update Session List
     const sessionList = document.getElementById("session-list");
-    sessionList.innerHTML = "";
-
-    if (data.recent_logs) {
-        data.recent_logs.forEach(log => {
-            const li = document.createElement("li");
-            li.className = "data-item";
-            li.innerHTML = `
-                <span class="item-title">#${log.sessionId}</span>
-                <span class="item-subtitle">Active Monitoring...</span>
-            `;
-            sessionList.appendChild(li);
-        });
+    if (sessionList) {
+        sessionList.innerHTML = `
+            <li class="data-item active">
+                <span class="item-title">#${sessionId}</span>
+                <span class="item-subtitle">Live Interception...</span>
+            </li>
+        `;
     }
 }
 
 function addMessageToUI(role, text) {
     const chatContainer = document.getElementById("chat-container");
-    const div = document.createElement("div");
+    if (!chatContainer) return;
 
+    const div = document.createElement("div");
     div.className = `message ${role}`;
+
+    const roleLabel = role === 'scammer' ? 'SCAMMER (YOU)' : 'AGENT (ASHOK KUMAR)';
     div.innerHTML = `
-        <span class="msg-role">${role === 'scammer' ? 'YOU (SCAMMER)' : 'AGENT (RAMESH PRASAD)'}</span>
+        <span class="msg-role">${roleLabel}</span>
         ${text}
      `;
 
@@ -131,18 +143,21 @@ function addMessageToUI(role, text) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-// Add Event Listener for Enter key
+function startNewSession() {
+    chatHistory = [];
+    const chatContainer = document.getElementById("chat-container");
+    if (chatContainer) chatContainer.innerHTML = "";
+    addMessageToUI("agent", "Acha beta... ruko, naya message aaya hai shayad.");
+}
+
+// Initial Setup
 document.addEventListener("DOMContentLoaded", () => {
     const input = document.getElementById("sim-input");
     if (input) {
-        input.addEventListener("keypress", function (event) {
-            if (event.key === "Enter") {
-                sendScamMessage();
-            }
+        input.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") sendScamMessage();
         });
     }
+    fetchStats();
+    setInterval(fetchStats, 5000);
 });
-
-// Poll every 3 seconds for stats
-setInterval(fetchStats, 3000);
-fetchStats();
