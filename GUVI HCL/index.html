@@ -15,8 +15,7 @@
             --card-bg: #111a2f;
             --text-primary: #e0e6ed;
             --text-secondary: #94a3b8;
-            --accent-green: #00f0ff;
-            /* Neon Cyan */
+            --accent-green: #00f0ff; /* Neon Cyan */
             --accent-red: #ff2a6d;
             --border-color: #1e293b;
         }
@@ -286,20 +285,10 @@
             text-transform: uppercase;
         }
 
-        .tag.upi {
-            color: #facc15;
-            background: rgba(250, 204, 21, 0.1);
-        }
+        .tag.upi { color: #facc15; background: rgba(250, 204, 21, 0.1); }
+        .tag.phone { color: #a78bfa; background: rgba(167, 139, 250, 0.1); }
+        .tag.bank { color: #f472b6; background: rgba(244, 114, 182, 0.1); }
 
-        .tag.phone {
-            color: #a78bfa;
-            background: rgba(167, 139, 250, 0.1);
-        }
-
-        .tag.bank {
-            color: #f472b6;
-            background: rgba(244, 114, 182, 0.1);
-        }
     </style>
 </head>
 
@@ -307,7 +296,7 @@
 
     <header>
         <div class="brand">HCL GUVI // ACESQUAD HONEY-POT</div>
-        <div class="status-badge">● LIVE MONITORING</div>
+        <div class="status-badge" id="conn-status">● CONNECTING...</div>
     </header>
 
     <main>
@@ -348,7 +337,7 @@
             <div class="simulator-input-area">
                 <div class="input-group">
                     <input type="text" id="sim-input" placeholder="Simulate scammer message (e.g. 'Send OTP')">
-                    <button class="btn-send" onclick="sendScamMessage()">SEND</button>
+                    <button class="btn-send" id="btn-send-msg" onclick="sendScamMessage()">SEND</button>
                     <button class="btn-reset" onclick="startNewSession()" title="Reset">⟳</button>
                 </div>
             </div>
@@ -367,12 +356,28 @@
 
     <script>
         // --- CONFIGURATION ---
-        // REPLACE with your actual Render URL
+        // Double check this URL in Render dashboard!
         const API_BASE = "https://honey-pot-scammer-1.onrender.com";
         const HACKATHON_API_KEY = "guvi-hackathon-key";
 
         let chatHistory = [];
         let sessionId = "session-" + Math.floor(Math.random() * 1000000);
+
+        async function checkServerHealth() {
+            const statusBadge = document.getElementById("conn-status");
+            try {
+                const response = await fetch(`${API_BASE}/`, { method: "GET" });
+                if (response.ok) {
+                    statusBadge.innerText = "● SYSTEM ACTIVE";
+                    statusBadge.style.color = "var(--accent-green)";
+                    statusBadge.style.borderColor = "var(--accent-green)";
+                }
+            } catch (e) {
+                statusBadge.innerText = "● SERVER OFFLINE";
+                statusBadge.style.color = "var(--accent-red)";
+                statusBadge.style.borderColor = "var(--accent-red)";
+            }
+        }
 
         async function fetchStats() {
             try {
@@ -382,20 +387,22 @@
                     updateDashboard(data);
                 }
             } catch (error) {
-                console.warn("Stats fetch failed - Backend might be sleeping on Render.");
+                console.warn("Stats fetch failed.");
             }
         }
 
         async function sendScamMessage() {
             const input = document.getElementById("sim-input");
+            const btn = document.getElementById("btn-send-msg");
             const msg = input.value.trim();
             if (!msg) return;
 
             addMessageToUI("scammer", msg);
             input.value = "";
+            btn.disabled = true;
+            btn.innerText = "...";
 
             try {
-                // Prepare GUVI expected request format
                 const payload = {
                     sessionId: sessionId,
                     message: {
@@ -406,12 +413,12 @@
                     conversationHistory: chatHistory,
                     metadata: {
                         channel: "Web Simulator",
-                        language: "English",
-                        locale: "IN"
+                        language: "English"
                     }
                 };
 
-                const response = await fetch(`${API_BASE}/`, {
+                // Try both endpoints if needed, prioritizing '/api/honeypot'
+                const response = await fetch(`${API_BASE}/api/honeypot`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -420,11 +427,11 @@
                     body: JSON.stringify(payload)
                 });
 
-                if (!response.ok) throw new Error("Server Error");
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
 
                 const data = await response.json();
-
-                // Update Local History for next turn
                 chatHistory.push({ sender: "scammer", text: msg });
 
                 if (data && data.reply) {
@@ -436,13 +443,15 @@
 
             } catch (e) {
                 console.error("Connection Error:", e);
-                addMessageToUI("agent", "SYSTEM ERROR: Backend connection failed. Please ensure Render is active.");
+                addMessageToUI("agent", `SYSTEM ERROR: ${e.message}. (Check Render logs/CORS)`);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "SEND";
             }
         }
 
         function updateDashboard(data) {
             document.getElementById("active-sessions").innerText = data.active_sessions || 0;
-
             const intel = data.intelligence || {};
             const upi = intel.upi_ids || [];
             const phone = intel.phone_numbers || [];
@@ -489,13 +498,15 @@
             sessionId = "session-" + Math.floor(Math.random() * 1000000);
             chatHistory = [];
             document.getElementById("chat-container").innerHTML = "";
-            addMessageToUI("agent", "Beta, mera account thik kar do please...");
+            addMessageToUI("agent", "Beta, mera account block ho gaya hai... help kijiye.");
         }
 
         document.addEventListener("DOMContentLoaded", () => {
             const input = document.getElementById("sim-input");
             input.addEventListener("keypress", (e) => { if (e.key === "Enter") sendScamMessage(); });
+            checkServerHealth();
             fetchStats();
+            setInterval(checkServerHealth, 15000);
             setInterval(fetchStats, 10000);
         });
     </script>
