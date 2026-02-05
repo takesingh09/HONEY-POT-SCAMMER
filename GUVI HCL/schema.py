@@ -1,32 +1,44 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Any
 
-# Scam Detection Request (Input from User/System)
+# 1. Nested Message Structure (Matching GUVI Request Format)
+class MessageData(BaseModel):
+    sender: str = Field(..., description="scammer or user")
+    text: str = Field(..., description="The actual message content")
+    timestamp: Optional[Any] = None
+
+# 2. Metadata Structure
+class MetaData(BaseModel):
+    channel: Optional[str] = "SMS"
+    language: Optional[str] = "English"
+    locale: Optional[str] = "IN"
+
+# 3. Main Scam Detection Request (Input)
 class ScamDetectionRequest(BaseModel):
-    sessionId: str = Field(..., description="Unique session ID for the conversation")
-    message: str = Field(..., description="Incoming message from the potential scammer")
-    platform: str = Field(..., description="Source platform (WhatsApp, SMS, Email)")
-    senderId: str = Field(..., description="Sender's phone number or email")
+    sessionId: str = Field(..., description="Unique session ID")
+    message: MessageData = Field(..., description="Nested message object from GUVI")
+    conversationHistory: List[MessageData] = []
+    metadata: Optional[MetaData] = None
 
-# Intelligence Data (Extracted Info)
+# 4. Intelligence Data (Matching Strict GUVI Keys)
 class IntelligenceData(BaseModel):
-    upi_ids: List[str] = []
-    bank_accounts: List[str] = []
-    phone_numbers: List[str] = []
-    links: List[str] = []
+    upilds: List[str] = []
+    bankAccounts: List[str] = []
+    phoneNumbers: List[str] = []
+    phishingLinks: List[str] = []
+    suspiciousKeywords: List[str] = ["urgent", "verify", "block"]
 
-# Scam Detection Response (Output to User/System)
+# 5. Scam Detection Response (Output)
 class ScamDetectionResponse(BaseModel):
-    sessionId: str
-    isScam: bool
-    confidenceScore: float
-    reply: str
-    extractedIntelligence: IntelligenceData
-    status: str
+    status: str = "success"
+    reply: str = Field(..., description="AI generated response for the scammer")
+    scamDetected: bool = True
+    extractedIntelligence: Optional[IntelligenceData] = None
 
-# Callback Payload (Sent to GUVI)
+# 6. Final Callback Payload (Mandatory for Scoring)
 class CallbackPayload(BaseModel):
     sessionId: str
-    scamDetected: bool
-    intelligence: IntelligenceData
-    conversationHistory: List[dict]
+    scamDetected: bool = True
+    totalMessagesExchanged: int
+    extractedIntelligence: IntelligenceData
+    agentNotes: str = "Scammer used urgency tactics and requested verification."
